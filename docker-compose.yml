@@ -1,0 +1,67 @@
+version: '3'
+
+networks:
+  project_network:
+    name: ${COMPOSE_PROJECT_NAME}_network
+
+services:
+  site:
+    build:
+      context: .
+      dockerfile: nginx.dockerfile
+      args:
+        - PROJECT_DOMAIN=${PROJECT_DOMAIN}
+    container_name: nginx_${COMPOSE_PROJECT_NAME}
+    ports:
+      - ${HTTP_PORT}:80
+      - ${HTTPS_PORT}:443
+    volumes:
+      - ./wordpress:/var/www/html:delegated
+    depends_on:
+      - php
+      - mysql
+    environment:
+      - PROJECT_DOMAIN=${PROJECT_DOMAIN}
+      - HTTP_PORT=${HTTP_PORT}
+      - HTTPS_PORT=${HTTPS_PORT}
+    networks:
+      - project_network
+
+  mysql:
+    image: arm64v8/mysql:8.0
+    container_name: mysql_${COMPOSE_PROJECT_NAME}
+    restart: always
+    ports:
+      - ${MYSQL_PORT}:3306
+    volumes:
+      - ./mysql:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: $DB_NAME
+      MYSQL_USER: $DB_USER
+      MYSQL_PASSWORD: $DB_PASSWORD
+      MYSQL_ROOT_PASSWORD: $DB_ROOT_PASSWORD
+      SERVICE_TAGS: dev
+      SERVICE_NAME: $DB_HOST
+    networks:
+      - project_network
+
+  php:
+    build:
+      context: .
+      dockerfile: php.dockerfile
+    container_name: php_${COMPOSE_PROJECT_NAME}
+    volumes:
+      - ./wordpress:/var/www/html:delegated
+    networks:
+      - project_network
+
+  wp:
+    build:
+      context: .
+      dockerfile: php.dockerfile
+    container_name: wp_${COMPOSE_PROJECT_NAME}
+    entrypoint: ['wp', '--allow-root']
+    volumes:
+      - ./wordpress:/var/www/html:delegated
+    networks:
+      - project_network

@@ -1,0 +1,6 @@
+mysql
+nginx/certs/*
+wordpress
+.DS_Store
+.idea
+.env
